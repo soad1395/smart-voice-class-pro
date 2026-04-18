@@ -1,154 +1,267 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>منصة الصف الصوتية الذكية</title>
+<title>منصة أولياء الأمور</title>
 
 <style>
-body{font-family:Tahoma;background:#eef3ef;margin:0}
-.header{background:#2f6f44;color:#fff;padding:20px;text-align:center}
-.card{background:#fff;padding:15px;border-radius:15px;margin:10px}
-button{background:#2f6f44;color:#fff;border:none;padding:10px;margin:5px;border-radius:10px}
-textarea,input,select{width:100%;padding:8px;margin-top:5px}
+body{margin:0;font-family:Tajawal;background:#f5f6fa;display:flex}
+
+/* القائمة */
+.sidebar{
+width:220px;
+background:#1e293b;
+color:#fff;
+height:100vh;
+padding:20px;
+}
+
+.sidebar div{
+padding:12px;
+margin:5px 0;
+cursor:pointer;
+border-radius:10px;
+}
+
+.sidebar div:hover{background:#334155}
+
+/* المحتوى */
+.main{
+flex:1;
+padding:20px;
+}
+
+.card{
+background:#fff;
+padding:15px;
+border-radius:15px;
+margin-bottom:10px;
+}
+
+/* الإحصائيات */
+.stats{
+display:flex;
+gap:10px;
+}
+
+.stat{
+flex:1;
+background:#fff;
+padding:15px;
+border-radius:15px;
+text-align:center;
+}
+
+button{
+background:#7c3aed;
+color:#fff;
+border:none;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
+}
+
+input,textarea,select{
+width:100%;
+padding:8px;
+margin-top:5px;
+}
+
 audio{width:100%;margin-top:10px}
 </style>
 
 </head>
+
 <body>
 
-<div class="header">
-<h2>منصة الصف الصوتية الذكية 🎤</h2>
+<div class="sidebar">
+<h3>📱 المنصة</h3>
+<div onclick="go('home')">الرئيسية</div>
+<div onclick="go('add')">إضافة رسالة</div>
+<div onclick="go('messages')">الرسائل والصوتيات</div>
+<div onclick="go('settings')">الإعدادات</div>
+</div>
+
+<div class="main">
+
+<!-- الرئيسية -->
+<div id="home" class="page">
+<h2>منصة أولياء الأمور</h2>
+
+<div class="stats">
+<div class="stat">الطالبات<br><span id="sCount">0</span></div>
+<div class="stat">الرسائل<br><span id="mCount">0</span></div>
+<div class="stat">الصوتيات<br><span id="aCount">0</span></div>
 </div>
 
 <div class="card">
-<h3>إضافة الطالبات</h3>
-<textarea id="studentsText" placeholder="كل اسم في سطر"></textarea>
-<button onclick="addStudents()">إضافة</button>
+<input id="className" placeholder="اسم الفصل">
+<button onclick="addClass()">إضافة فصل</button>
+
+<textarea id="studentsText" placeholder="أسماء الطالبات"></textarea>
+<button onclick="addStudents()">إضافة طالبات</button>
+
 <div id="studentsList"></div>
 </div>
+</div>
 
-<div class="card">
-<h3>رسائل أولياء الأمور</h3>
+<!-- إضافة رسالة -->
+<div id="add" class="page" style="display:none">
+<h2>إضافة رسالة</h2>
 
 <select id="studentSelect"></select>
 
-<input id="topic" placeholder="عنوان الرسالة">
+<select id="sender">
+<option value="معلمة">من المعلمة</option>
+<option value="ولي أمر">من ولي الأمر</option>
+</select>
 
-<button onclick="generateMsg()">توليد الرسالة</button>
+<select id="type">
+<option value="نص">نصية</option>
+<option value="صوت">صوتية</option>
+</select>
 
-<textarea id="msgBox"></textarea>
+<textarea id="msg"></textarea>
 
-<button onclick="saveMessage()">💾 حفظ الرسالة</button>
+<button onclick="saveMsg()">إرسال</button>
 
-<div id="messagesList"></div>
-</div>
+<br><br>
 
-<div class="card">
-<h3>🎤 تسجيل صوت المعلمة</h3>
-
-<button onclick="startRecord()">🎙️ تسجيل</button>
-<button onclick="stopRecord()">⏹️ إيقاف</button>
-
+<button onclick="startRec()">🎤 تسجيل</button>
+<button onclick="stopRec()">إيقاف</button>
 <audio id="audioPlayer" controls></audio>
 
 <button onclick="saveAudio()">💾 حفظ الصوت</button>
 
+</div>
+
+<!-- الرسائل -->
+<div id="messages" class="page" style="display:none">
+<h2>الرسائل والصوتيات</h2>
+<div id="msgList"></div>
 <div id="audioList"></div>
+</div>
+
+<!-- الإعدادات -->
+<div id="settings" class="page" style="display:none">
+<h2>الإعدادات</h2>
+
+<input id="platformName" placeholder="اسم المنصة">
+<button onclick="saveSettings()">حفظ</button>
+
+<button onclick="clearAll()" style="background:red">حذف الكل</button>
+
+</div>
+
 </div>
 
 <script>
 
-let data = JSON.parse(localStorage.getItem("smart_voice_platform")) || {
+let data = JSON.parse(localStorage.getItem("platform")) || {
 students:[],
 messages:[],
-audios:[]
+audios:[],
+class:""
 };
 
 function save(){
-localStorage.setItem("smart_voice_platform", JSON.stringify(data));
+localStorage.setItem("platform", JSON.stringify(data));
 render();
 }
 
-/* ===== الطالبات ===== */
+function go(p){
+document.querySelectorAll(".page").forEach(x=>x.style.display="none");
+document.getElementById(p).style.display="block";
+}
+
+/* الطالبات */
 function addStudents(){
-let names = studentsText.value.split(/\n|,/).map(x=>x.trim()).filter(Boolean);
-
-names.forEach(n=>{
-if(!data.students.includes(n)) data.students.push(n);
+let list = studentsText.value.split("\n");
+list.forEach(s=>{
+if(s.trim()) data.students.push(s.trim());
 });
-
-studentsText.value="";
 save();
 }
 
-/* ===== الرسائل ===== */
-function generateMsg(){
-let student = studentSelect.value;
-let topic = topic.value;
-
-msgBox.value = `
-ولي أمر الطالبة ${student}
-بخصوص: ${topic}
-نأمل المتابعة.
-`;
-}
-
-function saveMessage(){
-if(!msgBox.value) return;
-data.messages.push(msgBox.value);
-msgBox.value="";
+function addClass(){
+data.class = className.value;
 save();
 }
 
-/* ===== الصوت ===== */
-let mediaRecorder;
-let audioBlob;
+/* الرسائل */
+function saveMsg(){
+data.messages.push({
+student:studentSelect.value,
+text:msg.value,
+sender:sender.value
+});
+msg.value="";
+save();
+}
 
-async function startRecord(){
+/* الصوت */
+let rec,blob;
+
+async function startRec(){
 let stream = await navigator.mediaDevices.getUserMedia({audio:true});
-mediaRecorder = new MediaRecorder(stream);
+rec = new MediaRecorder(stream);
 
 let chunks=[];
-mediaRecorder.ondataavailable=e=>chunks.push(e.data);
+rec.ondataavailable=e=>chunks.push(e.data);
 
-mediaRecorder.onstop=e=>{
-audioBlob = new Blob(chunks);
-audioPlayer.src = URL.createObjectURL(audioBlob);
+rec.onstop=()=>{
+blob = new Blob(chunks);
+audioPlayer.src = URL.createObjectURL(blob);
 };
 
-mediaRecorder.start();
+rec.start();
 }
 
-function stopRecord(){
-if(mediaRecorder) mediaRecorder.stop();
+function stopRec(){
+rec.stop();
 }
 
 function saveAudio(){
-if(!audioBlob) return alert("سجلي أول");
+let reader=new FileReader();
+reader.readAsDataURL(blob);
 
-let reader = new FileReader();
-reader.readAsDataURL(audioBlob);
-
-reader.onload=function(){
+reader.onload=()=>{
 data.audios.push(reader.result);
 save();
+};
+}
+
+/* الإعدادات */
+function saveSettings(){
+alert("تم الحفظ");
+}
+
+function clearAll(){
+if(confirm("حذف كل شيء؟")){
+localStorage.clear();
+location.reload();
 }
 }
 
-/* ===== عرض البيانات ===== */
+/* عرض */
 function render(){
 
 studentsList.innerHTML = data.students.join("<br>");
 
 studentSelect.innerHTML = data.students.map(s=>`<option>${s}</option>`);
 
-messagesList.innerHTML = data.messages.map(m=>`
-<div class="card">${m}</div>
+msgList.innerHTML = data.messages.map(m=>`
+<div class="card">${m.student} - ${m.sender}<br>${m.text}</div>
 `).join("");
 
 audioList.innerHTML = data.audios.map(a=>`
 <audio src="${a}" controls></audio>
-`).join("<hr>");
+`).join("");
+
+sCount.innerText = data.students.length;
+mCount.innerText = data.messages.length;
+aCount.innerText = data.audios.length;
+
 }
 
 render();
